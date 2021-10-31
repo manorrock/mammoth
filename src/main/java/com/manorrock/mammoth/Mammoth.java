@@ -27,18 +27,73 @@
  */
 package com.manorrock.mammoth;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
 /**
  * Manorrock Mammoth - JavaTest TCK to Maven.
- * 
+ *
  * @author Manfred Riem (mriem@manorrock.com)
  */
 public class Mammoth {
-    
+
+    /**
+     * Stores the TCK URL.
+     */
+    private URL tckUrl;
+
+    /**
+     * Stores the TCK zip file.
+     */
+    private String tckZipFile = "tck.zip";
+
+    /**
+     * Download TCK.
+     */
+    public void downloadTck() {
+        try (InputStream stream = tckUrl.openStream()) {
+            Files.copy(stream, Paths.get(tckZipFile));
+        } catch (IOException ex) {
+            ex.printStackTrace(System.err);
+        }
+    }
+
+    /**
+     * Run the program.
+     */
+    public void run() {
+        downloadTck();
+    }
+
+    /**
+     * Parse the arguments.
+     *
+     * @param arguments the arguments.
+     * @return the program.
+     */
+    public Mammoth parseArguments(String[] arguments) {
+        for (int i = 0; i < arguments.length; i++) {
+            if (arguments[i].equals("--tckUrl")) {
+                try {
+                    tckUrl = new URL(arguments[i + 1]);
+                } catch (MalformedURLException ex) {
+                    ex.printStackTrace(System.err);
+                }
+            }
+        }
+        return this;
+    }
+
     /**
      * Main method.
-     * 
+     *
      * @param arguments the command-line arguments.
      */
     public static void main(String[] arguments) {
+        new Mammoth().parseArguments(arguments).run();
     }
 }
