@@ -27,12 +27,16 @@
  */
 package com.manorrock.mammoth;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Enumeration;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 /**
  * Manorrock Mammoth - JavaTest TCK to Maven.
@@ -40,6 +44,11 @@ import java.nio.file.Paths;
  * @author Manfred Riem (mriem@manorrock.com)
  */
 public class Mammoth {
+
+    /**
+     * Stores the TCK directory.
+     */
+    private File tckDir = new File("tck");
 
     /**
      * Stores the TCK URL.
@@ -54,11 +63,33 @@ public class Mammoth {
     /**
      * Download TCK.
      */
-    public void downloadTck() {
-        try (InputStream stream = tckUrl.openStream()) {
+    private void downloadTck() {
+        try ( InputStream stream = tckUrl.openStream()) {
             Files.copy(stream, Paths.get(tckZipFile));
         } catch (IOException ex) {
             ex.printStackTrace(System.err);
+        }
+    }
+
+    /**
+     * Extract TCK.
+     */
+    private void extractTck() {
+        try (ZipFile zipFile = new ZipFile(tckZipFile)) {
+            Enumeration<? extends ZipEntry>  entries = zipFile.entries();
+            while(entries.hasMoreElements()) {
+                ZipEntry entry = entries.nextElement();
+                System.out.println(entry.getName());
+                if (entry.isDirectory()) {
+                    File dir = new File(tckDir, entry.getName().substring(entry.getName().indexOf("/")));
+                    dir.mkdirs();
+                } else {
+                    File file = new File(tckDir, entry.getName().substring(entry.getName().indexOf("/")));
+                    Files.copy(zipFile.getInputStream(entry), file.toPath());
+                }
+            }
+        } catch (IOException ioe) {
+            ioe.printStackTrace(System.err);
         }
     }
 
@@ -67,6 +98,7 @@ public class Mammoth {
      */
     public void run() {
         downloadTck();
+        extractTck();
     }
 
     /**
@@ -83,6 +115,9 @@ public class Mammoth {
                 } catch (MalformedURLException ex) {
                     ex.printStackTrace(System.err);
                 }
+            }
+            if (arguments[i].equals("--tckDir")) {
+                tckDir = new File(arguments[i + 1]);
             }
         }
         return this;
