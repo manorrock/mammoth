@@ -61,6 +61,11 @@ public class Mammoth {
     private String tckZipFile = "tck.zip";
 
     /**
+     * Stores the webapps directory.
+     */
+    private File webAppsDir = new File("webapps");
+
+    /**
      * Download TCK.
      */
     private void downloadTck() {
@@ -75,9 +80,9 @@ public class Mammoth {
      * Extract TCK.
      */
     private void extractTck() {
-        try (ZipFile zipFile = new ZipFile(tckZipFile)) {
-            Enumeration<? extends ZipEntry>  entries = zipFile.entries();
-            while(entries.hasMoreElements()) {
+        try ( ZipFile zipFile = new ZipFile(tckZipFile)) {
+            Enumeration<? extends ZipEntry> entries = zipFile.entries();
+            while (entries.hasMoreElements()) {
                 ZipEntry entry = entries.nextElement();
                 System.out.println(entry.getName());
                 if (entry.isDirectory()) {
@@ -118,6 +123,9 @@ public class Mammoth {
             }
             if (arguments[i].equals("--tckDir")) {
                 tckDir = new File(arguments[i + 1]);
+            }
+            if (arguments[i].equals("--webAppsDir")) {
+                webAppsDir = new File(arguments[i + 1]);
             }
         }
         return this;
