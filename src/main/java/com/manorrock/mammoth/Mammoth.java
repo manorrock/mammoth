@@ -33,8 +33,12 @@ import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Enumeration;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
@@ -66,6 +70,41 @@ public class Mammoth {
     private File webAppsDir = new File("webapps");
 
     /**
+     * Deploy the wars.
+     */
+    private void deployWars() {
+        try ( Stream<Path> walk = Files.walk(tckDir.toPath())) {
+
+            List<File> files = walk
+                    .map(Path::toFile)
+                    .filter(file -> file.getName().toLowerCase().endsWith(".war"))
+                    .collect(Collectors.toList());
+
+            files.forEach(System.out::println);
+            
+            if (!webAppsDir.exists()) {
+                webAppsDir.mkdirs();
+            }
+            
+            files.forEach(file -> {
+                File deployedFile = new File(webAppsDir, file.getName());
+                if (!deployedFile.exists()) {
+                    try {
+                        Files.copy(file.toPath(), deployedFile.toPath());
+                    } catch (IOException ioe) {
+                        ioe.printStackTrace(System.err);
+                    }
+                } else {
+                    System.err.println("Duplicate filename detected: " + file.getAbsolutePath());
+                }
+            });
+
+        } catch (IOException ioe) {
+            ioe.printStackTrace(System.err);
+        }
+    }
+
+    /**
      * Download TCK.
      */
     private void downloadTck() {
@@ -84,7 +123,6 @@ public class Mammoth {
             Enumeration<? extends ZipEntry> entries = zipFile.entries();
             while (entries.hasMoreElements()) {
                 ZipEntry entry = entries.nextElement();
-                System.out.println(entry.getName());
                 if (entry.isDirectory()) {
                     File dir = new File(tckDir, entry.getName().substring(entry.getName().indexOf("/")));
                     dir.mkdirs();
@@ -104,6 +142,7 @@ public class Mammoth {
     public void run() {
         downloadTck();
         extractTck();
+        deployWars();
     }
 
     /**
