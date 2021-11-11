@@ -28,6 +28,7 @@
 package com.manorrock.mammoth;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -50,6 +51,11 @@ import java.util.zip.ZipFile;
 public class Mammoth {
 
     /**
+     * Stores the Maven directory.
+     */
+    private File mavenDir = new File("maven");
+
+    /**
      * Stores the TCK directory.
      */
     private File tckDir = new File("tck");
@@ -70,6 +76,95 @@ public class Mammoth {
     private File webAppsDir = new File("webapps");
 
     /**
+     * Create the Maven structure.
+     */
+    private void createMavenStructure() {
+        try {
+            // 0. create Maven dir if it does not exist.
+            if (!mavenDir.exists()) {
+                mavenDir.mkdirs();
+            }
+            // 1. create directories
+            String[] filenames = webAppsDir.list();
+            for (String filename : filenames) {
+                File newFile = new File(mavenDir, filename.substring(0, filename.lastIndexOf(".war")));
+                newFile.mkdirs();
+            }
+            // 2. create POMs for WARs
+            File[] directories = mavenDir.listFiles();
+            for (File directory : directories) {
+                if (directory.isDirectory()) {
+                    File pomFile = new File(directory, "pom.xml");
+                    if (pomFile.createNewFile()) {
+                        String content = """
+<?xml version="1.0" encoding="UTF-8"?>
+                                         
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+ <modelVersion>4.0.0</modelVersion>
+ <parent>
+  <groupId>tck</groupId>
+  <artifactId>project</artifactId>
+  <version>1-SNAPSHOT</version>
+ </parent>
+ <artifactId>%s</artifactId>
+ <packaging>war</packaging>
+ <name>TCK - %s</name>
+ <properties>
+  <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+ </properties>
+</project>                                           
+                                         """;
+                        try ( FileWriter writer = new FileWriter(pomFile)) {
+                            writer.write(String.format(
+                                    content,
+                                    directory.getName(),
+                                    directory.getName()));
+                            writer.flush();
+                        }
+                    }
+                }
+            }
+            // 3. create top-level POM
+            File topLevelPomFile = new File(mavenDir, "pom.xml");
+            if (topLevelPomFile.createNewFile()) {
+                StringBuilder modules = new StringBuilder();
+
+                directories = mavenDir.listFiles();
+                for (File directory : directories) {
+                    modules.append("<module>").append(directory.getName()).append("</module>\n");
+                }
+
+                String content = """
+<?xml version="1.0" encoding="UTF-8"?>
+                                         
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+ <modelVersion>4.0.0</modelVersion>
+  <groupId>tck</groupId>
+  <artifactId>project</artifactId>
+  <version>1-SNAPSHOT</version>
+  <packaging>pom</packaging>
+  <name>TCK</name>
+  <properties>
+   <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+  <modules>
+   %s
+  </modules>
+</project>                                           
+                                         """;
+                try ( FileWriter writer = new FileWriter(topLevelPomFile)) {
+                    writer.write(String.format(
+                            content,
+                            modules.toString()));
+                    writer.flush();
+                }
+            }
+        } catch (IOException ioe) {
+            ioe.printStackTrace(System.err);
+        }
+    }
+
+    /**
      * Deploy the wars.
      */
     private void deployWars() {
@@ -80,12 +175,10 @@ public class Mammoth {
                     .filter(file -> file.getName().toLowerCase().endsWith(".war"))
                     .collect(Collectors.toList());
 
-            files.forEach(System.out::println);
-            
             if (!webAppsDir.exists()) {
                 webAppsDir.mkdirs();
             }
-            
+
             files.forEach(file -> {
                 File deployedFile = new File(webAppsDir, file.getName());
                 if (!deployedFile.exists()) {
@@ -143,6 +236,7 @@ public class Mammoth {
         downloadTck();
         extractTck();
         deployWars();
+        createMavenStructure();
     }
 
     /**
