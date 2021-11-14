@@ -27,7 +27,10 @@
  */
 package com.manorrock.mammoth;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
@@ -42,6 +45,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 /**
  * Manorrock Mammoth - JavaTest TCK to Maven.
@@ -100,18 +104,27 @@ public class Mammoth {
 <?xml version="1.0" encoding="UTF-8"?>
                                          
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
- <modelVersion>4.0.0</modelVersion>
- <parent>
-  <groupId>tck</groupId>
-  <artifactId>project</artifactId>
-  <version>1-SNAPSHOT</version>
- </parent>
- <artifactId>%s</artifactId>
- <packaging>war</packaging>
- <name>TCK - %s</name>
- <properties>
-  <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
- </properties>
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>tck</groupId>
+    <artifactId>project</artifactId>
+    <version>1-SNAPSHOT</version>
+  </parent>
+  <artifactId>%s</artifactId>
+  <packaging>war</packaging>
+  <name>TCK - %s</name>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-war-plugin</artifactId>
+        <version>3.3.2</version>
+      </plugin>
+    </plugins>
+  </build>                                   
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
 </project>                                           
                                          """;
                         try ( FileWriter writer = new FileWriter(pomFile)) {
@@ -230,6 +243,60 @@ public class Mammoth {
     }
 
     /**
+     * Extract the zip input stream.
+     *
+     * @param zipInput the zip input stream.
+     * @param filePath the file path.
+     * @throws IOException when an I/O error occurs.
+     */
+    private void extractZipInputStream(ZipInputStream zipInput, String filePath) throws IOException {
+        try ( BufferedOutputStream bufferOutput = new BufferedOutputStream(new FileOutputStream(filePath))) {
+            byte[] bytesIn = new byte[8192];
+            int read;
+            while ((read = zipInput.read(bytesIn)) != -1) {
+                bufferOutput.write(bytesIn, 0, read);
+            }
+        }
+    }
+
+    /**
+     * Explode the binary content from the WARs in the Maven structure.
+     */
+    public void explodeBinaryContentFromWars() {
+        File[] files = webAppsDir.listFiles();
+        for (File file : files) {
+            try {
+                File outputDirectory = new File(mavenDir,
+                        file.getName().substring(0, file.getName().toLowerCase().indexOf(".war"))
+                        + File.separator
+                        + "src/main/webapp");
+
+                if (!outputDirectory.exists()) {
+                    outputDirectory.mkdirs();
+                }
+
+                try ( ZipInputStream zipInput = new ZipInputStream(new FileInputStream(file))) {
+                    ZipEntry entry = zipInput.getNextEntry();
+                    while (entry != null) {
+                        String filePath = outputDirectory + File.separator + entry.getName();
+                        if (!entry.isDirectory()) { // && !filePath.toLowerCase().endsWith(".class")) {
+                            File outputFile = new File(filePath);
+                            if (!outputFile.getParentFile().exists()) {
+                                outputFile.getParentFile().mkdirs();
+                            }
+                            extractZipInputStream(zipInput, filePath);
+                        }
+                        zipInput.closeEntry();
+                        entry = zipInput.getNextEntry();
+                    }
+                }
+            } catch (IOException ioe) {
+                ioe.printStackTrace(System.err);
+            }
+        }
+    }
+
+    /**
      * Run the program.
      */
     public void run() {
@@ -237,6 +304,7 @@ public class Mammoth {
         extractTck();
         deployWars();
         createMavenStructure();
+        explodeBinaryContentFromWars();
     }
 
     /**
