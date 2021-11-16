@@ -80,6 +80,49 @@ public class Mammoth {
     private File webAppsDir = new File("webapps");
 
     /**
+     * Add the Java sources.
+     */
+    private void addJavaSources() {
+        File[] files = webAppsDir.listFiles();
+        for (File file : files) {
+            try {
+                File outputDirectory = new File(mavenDir,
+                        file.getName().substring(0, file.getName().toLowerCase().indexOf(".war"))
+                        + File.separator
+                        + "src/main/java");
+
+                if (!outputDirectory.exists()) {
+                    outputDirectory.mkdirs();
+                }
+
+                try ( ZipInputStream zipInput = new ZipInputStream(new FileInputStream(file))) {
+                    ZipEntry entry = zipInput.getNextEntry();
+                    while (entry != null) {
+                        String filePath = outputDirectory + File.separator + entry.getName();
+                        if (!entry.isDirectory() && filePath.toLowerCase().endsWith(".class")
+                                && !filePath.contains("$")) {
+                            String classFilePath = filePath.substring(0, filePath.lastIndexOf(".class"));
+                            classFilePath = classFilePath.substring(
+                                    classFilePath.lastIndexOf("WEB-INF/classes/")
+                                    + "WEB-INF/classes/".length());
+                            File classFile = new File(tckDir, "src/" + classFilePath + ".java");
+                            File outputFile = new File(outputDirectory, classFilePath + ".java");
+                            if (!outputFile.getParentFile().exists()) {
+                                outputFile.getParentFile().mkdirs();
+                            }
+                            Files.copy(classFile.toPath(), outputFile.toPath());
+                        }
+                        zipInput.closeEntry();
+                        entry = zipInput.getNextEntry();
+                    }
+                }
+            } catch (IOException ioe) {
+                ioe.printStackTrace(System.err);
+            }
+        }
+    }
+
+    /**
      * Create the Maven structure.
      */
     private void createMavenStructure() {
@@ -117,11 +160,27 @@ public class Mammoth {
     <plugins>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
+        <configuration>
+          <release>11</release>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-war-plugin</artifactId>
         <version>3.3.2</version>
       </plugin>
     </plugins>
-  </build>                                   
+  </build>
+  <dependencies>
+    <dependency>
+      <groupId>jakarta.platform</groupId>
+      <artifactId>jakarta.jakartaee-api</artifactId>
+      <version>9.1.0</version>
+      <scope>provided</scope>
+    </dependency>
+  </dependencies>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
@@ -144,24 +203,26 @@ public class Mammoth {
 
                 directories = mavenDir.listFiles();
                 for (File directory : directories) {
-                    modules.append("<module>").append(directory.getName()).append("</module>\n");
+                    if (directory.isDirectory()) {
+                        modules.append("<module>").append(directory.getName()).append("</module>\n");
+                    }
                 }
 
                 String content = """
 <?xml version="1.0" encoding="UTF-8"?>
                                          
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
- <modelVersion>4.0.0</modelVersion>
+  <modelVersion>4.0.0</modelVersion>
   <groupId>tck</groupId>
   <artifactId>project</artifactId>
   <version>1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>TCK</name>
   <properties>
-   <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   <modules>
-   %s
+%s
   </modules>
 </project>                                           
                                          """;
@@ -279,7 +340,7 @@ public class Mammoth {
                     ZipEntry entry = zipInput.getNextEntry();
                     while (entry != null) {
                         String filePath = outputDirectory + File.separator + entry.getName();
-                        if (!entry.isDirectory()) { // && !filePath.toLowerCase().endsWith(".class")) {
+                        if (!entry.isDirectory() && !filePath.toLowerCase().endsWith(".class")) {
                             File outputFile = new File(filePath);
                             if (!outputFile.getParentFile().exists()) {
                                 outputFile.getParentFile().mkdirs();
@@ -305,6 +366,7 @@ public class Mammoth {
         deployWars();
         createMavenStructure();
         explodeBinaryContentFromWars();
+        addJavaSources();
     }
 
     /**
