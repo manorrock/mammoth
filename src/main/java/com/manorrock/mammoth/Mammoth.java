@@ -186,6 +186,12 @@ public class Mammoth {
       <version>${project.version}</version>
       <scope>compile</scope>
     </dependency>
+    <dependency>
+      <groupId>tck</groupId>
+      <artifactId>tsharness</artifactId>
+      <version>${project.version}</version>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -228,7 +234,8 @@ public class Mammoth {
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
   <modules>
-    <module>javatest</module>
+      <module>javatest</module>
+      <module>tsharness</module>
 %s
   </modules>
 </project>                                           
@@ -307,6 +314,87 @@ public class Mammoth {
 
             try (ZipInputStream zipInput = new ZipInputStream(
                     new FileInputStream(new File(tckDir, "lib/javatest.jar")))) {
+                ZipEntry entry = zipInput.getNextEntry();
+                while (entry != null) {
+                    if (!entry.isDirectory()) {
+                        File outputFile = new File(outputDirectory, entry.getName());
+                        if (!outputFile.getParentFile().exists()) {
+                            outputFile.getParentFile().mkdirs();
+                        }
+                        Files.copy(zipInput, outputFile.toPath());
+                    }
+                    zipInput.closeEntry();
+                    entry = zipInput.getNextEntry();
+                }
+            }
+
+        } catch (IOException ioe) {
+            ioe.printStackTrace(System.err);
+        }
+    }
+
+    /**
+     * Create the tsharness.jar project.
+     */
+    private void createTSHarnessJarProject() {
+        try {
+            // 0. create Maven dir if it does not exist.
+            if (!mavenDir.exists()) {
+                mavenDir.mkdirs();
+            }
+            // 1. create the tsharness.jar project directory.
+            File tsHarnessProjectDir = new File(mavenDir, "tsharness");
+            tsHarnessProjectDir.mkdir();
+            // 2. create POM file.
+            File pomFile = new File(tsHarnessProjectDir, "pom.xml");
+            if (pomFile.createNewFile()) {
+                String content = """
+<?xml version="1.0" encoding="UTF-8"?>
+                                         
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>tck</groupId>
+    <artifactId>project</artifactId>
+    <version>1-SNAPSHOT</version>
+  </parent>
+  <artifactId>%s</artifactId>
+  <packaging>jar</packaging>
+  <name>TCK - %s</name>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
+        <configuration>
+          <release>11</release>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+</project>                                           
+                                         """;
+                try (FileWriter writer = new FileWriter(pomFile)) {
+                    writer.write(String.format(
+                            content,
+                            tsHarnessProjectDir.getName(),
+                            tsHarnessProjectDir.getName()));
+                    writer.flush();
+                }
+            }
+            // 3. extract lib/tsharness.jar into src/main/resources.
+            File outputDirectory = new File(tsHarnessProjectDir, "src/main/resources");
+
+            if (!outputDirectory.exists()) {
+                outputDirectory.mkdirs();
+            }
+
+            try (ZipInputStream zipInput = new ZipInputStream(
+                    new FileInputStream(new File(tckDir, "lib/tsharness.jar")))) {
                 ZipEntry entry = zipInput.getNextEntry();
                 while (entry != null) {
                     if (!entry.isDirectory()) {
@@ -456,6 +544,7 @@ public class Mammoth {
         explodeBinaryContentFromWars();
         addJavaSources();
         createJavaTestJarProject();
+        createTSHarnessJarProject();
     }
 
     /**
