@@ -90,17 +90,19 @@ public class Mammoth {
                         file.getName().substring(0, file.getName().toLowerCase().indexOf(".war"))
                         + File.separator
                         + "src/main/java");
-
+                
                 if (!outputDirectory.exists()) {
                     outputDirectory.mkdirs();
                 }
-
-                try (ZipInputStream zipInput = new ZipInputStream(new FileInputStream(file))) {
+                
+                try ( ZipInputStream zipInput = new ZipInputStream(new FileInputStream(file))) {
                     ZipEntry entry = zipInput.getNextEntry();
                     while (entry != null) {
                         String filePath = outputDirectory + File.separator + entry.getName();
                         if (!entry.isDirectory() && filePath.toLowerCase().endsWith(".class")
-                                && !filePath.contains("$")) {
+                                && !filePath.contains("$")
+                                && !filePath.contains("Client.class")
+                                && !filePath.contains("WebTestCase.class")) {
                             String classFilePath = filePath.substring(0, filePath.lastIndexOf(".class"));
                             classFilePath = classFilePath.substring(
                                     classFilePath.lastIndexOf("WEB-INF/classes/")
@@ -198,7 +200,7 @@ public class Mammoth {
   </properties>
 </project>                                           
                                          """;
-                        try (FileWriter writer = new FileWriter(pomFile)) {
+                        try ( FileWriter writer = new FileWriter(pomFile)) {
                             writer.write(String.format(
                                     content,
                                     directory.getName(),
@@ -212,14 +214,14 @@ public class Mammoth {
             File topLevelPomFile = new File(mavenDir, "pom.xml");
             if (topLevelPomFile.createNewFile()) {
                 StringBuilder modules = new StringBuilder();
-
+                
                 directories = mavenDir.listFiles();
                 for (File directory : directories) {
                     if (directory.isDirectory()) {
                         modules.append("<module>").append(directory.getName()).append("</module>\n");
                     }
                 }
-
+                
                 String content = """
 <?xml version="1.0" encoding="UTF-8"?>
                                          
@@ -240,7 +242,7 @@ public class Mammoth {
   </modules>
 </project>                                           
                                          """;
-                try (FileWriter writer = new FileWriter(topLevelPomFile)) {
+                try ( FileWriter writer = new FileWriter(topLevelPomFile)) {
                     writer.write(String.format(
                             content,
                             modules.toString()));
@@ -297,7 +299,7 @@ public class Mammoth {
   </properties>
 </project>                                           
                                          """;
-                try (FileWriter writer = new FileWriter(pomFile)) {
+                try ( FileWriter writer = new FileWriter(pomFile)) {
                     writer.write(String.format(
                             content,
                             javaTestProjectDir.getName(),
@@ -307,12 +309,12 @@ public class Mammoth {
             }
             // 3. extract lib/javatest.jar into src/main/resources.
             File outputDirectory = new File(javaTestProjectDir, "src/main/resources");
-
+            
             if (!outputDirectory.exists()) {
                 outputDirectory.mkdirs();
             }
-
-            try (ZipInputStream zipInput = new ZipInputStream(
+            
+            try ( ZipInputStream zipInput = new ZipInputStream(
                     new FileInputStream(new File(tckDir, "lib/javatest.jar")))) {
                 ZipEntry entry = zipInput.getNextEntry();
                 while (entry != null) {
@@ -327,7 +329,7 @@ public class Mammoth {
                     entry = zipInput.getNextEntry();
                 }
             }
-
+            
         } catch (IOException ioe) {
             ioe.printStackTrace(System.err);
         }
@@ -378,7 +380,7 @@ public class Mammoth {
   </properties>
 </project>                                           
                                          """;
-                try (FileWriter writer = new FileWriter(pomFile)) {
+                try ( FileWriter writer = new FileWriter(pomFile)) {
                     writer.write(String.format(
                             content,
                             tsHarnessProjectDir.getName(),
@@ -388,12 +390,12 @@ public class Mammoth {
             }
             // 3. extract lib/tsharness.jar into src/main/resources.
             File outputDirectory = new File(tsHarnessProjectDir, "src/main/resources");
-
+            
             if (!outputDirectory.exists()) {
                 outputDirectory.mkdirs();
             }
-
-            try (ZipInputStream zipInput = new ZipInputStream(
+            
+            try ( ZipInputStream zipInput = new ZipInputStream(
                     new FileInputStream(new File(tckDir, "lib/tsharness.jar")))) {
                 ZipEntry entry = zipInput.getNextEntry();
                 while (entry != null) {
@@ -408,7 +410,7 @@ public class Mammoth {
                     entry = zipInput.getNextEntry();
                 }
             }
-
+            
         } catch (IOException ioe) {
             ioe.printStackTrace(System.err);
         }
@@ -418,17 +420,17 @@ public class Mammoth {
      * Deploy the wars.
      */
     private void deployWars() {
-        try (Stream<Path> walk = Files.walk(tckDir.toPath())) {
-
+        try ( Stream<Path> walk = Files.walk(tckDir.toPath())) {
+            
             List<File> files = walk
                     .map(Path::toFile)
                     .filter(file -> file.getName().toLowerCase().endsWith(".war"))
                     .collect(Collectors.toList());
-
+            
             if (!webAppsDir.exists()) {
                 webAppsDir.mkdirs();
             }
-
+            
             files.forEach(file -> {
                 File deployedFile = new File(webAppsDir, file.getName());
                 if (!deployedFile.exists()) {
@@ -441,7 +443,7 @@ public class Mammoth {
                     System.err.println("Duplicate filename detected: " + file.getAbsolutePath());
                 }
             });
-
+            
         } catch (IOException ioe) {
             ioe.printStackTrace(System.err);
         }
@@ -451,7 +453,7 @@ public class Mammoth {
      * Download TCK.
      */
     private void downloadTck() {
-        try (InputStream stream = tckUrl.openStream()) {
+        try ( InputStream stream = tckUrl.openStream()) {
             Files.copy(stream, Paths.get(tckZipFile));
         } catch (IOException ex) {
             ex.printStackTrace(System.err);
@@ -462,7 +464,7 @@ public class Mammoth {
      * Extract TCK.
      */
     private void extractTck() {
-        try (ZipFile zipFile = new ZipFile(tckZipFile)) {
+        try ( ZipFile zipFile = new ZipFile(tckZipFile)) {
             Enumeration<? extends ZipEntry> entries = zipFile.entries();
             while (entries.hasMoreElements()) {
                 ZipEntry entry = entries.nextElement();
@@ -487,7 +489,7 @@ public class Mammoth {
      * @throws IOException when an I/O error occurs.
      */
     private void extractZipInputStream(ZipInputStream zipInput, String filePath) throws IOException {
-        try (BufferedOutputStream bufferOutput = new BufferedOutputStream(new FileOutputStream(filePath))) {
+        try ( BufferedOutputStream bufferOutput = new BufferedOutputStream(new FileOutputStream(filePath))) {
             byte[] bytesIn = new byte[8192];
             int read;
             while ((read = zipInput.read(bytesIn)) != -1) {
@@ -507,12 +509,12 @@ public class Mammoth {
                         file.getName().substring(0, file.getName().toLowerCase().indexOf(".war"))
                         + File.separator
                         + "src/main/webapp");
-
+                
                 if (!outputDirectory.exists()) {
                     outputDirectory.mkdirs();
                 }
-
-                try (ZipInputStream zipInput = new ZipInputStream(new FileInputStream(file))) {
+                
+                try ( ZipInputStream zipInput = new ZipInputStream(new FileInputStream(file))) {
                     ZipEntry entry = zipInput.getNextEntry();
                     while (entry != null) {
                         String filePath = outputDirectory + File.separator + entry.getName();
