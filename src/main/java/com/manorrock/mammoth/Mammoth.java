@@ -194,6 +194,12 @@ public class Mammoth {
       <version>${project.version}</version>
       <scope>compile</scope>
     </dependency>
+    <dependency>
+      <groupId>tck</groupId>
+      <artifactId>common</artifactId>
+      <version>${project.version}</version>
+      <scope>compile</scope>
+    </dependency>
   </dependencies>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -238,6 +244,7 @@ public class Mammoth {
   <modules>
       <module>javatest</module>
       <module>tsharness</module>
+      <module>common</module>
 %s
   </modules>
 </project>                                           
@@ -417,6 +424,95 @@ public class Mammoth {
     }
 
     /**
+     * Create the common.jar project.
+     */
+    private void createCommonJarProject() {
+        try {
+            // 0. create Maven dir if it does not exist.
+            if (!mavenDir.exists()) {
+                mavenDir.mkdirs();
+            }
+            // 1. create the tsharness.jar project directory.
+            File commonProjectDir = new File(mavenDir, "common");
+            commonProjectDir.mkdir();
+            // 2. create POM file.
+            File pomFile = new File(commonProjectDir, "pom.xml");
+            if (pomFile.createNewFile()) {
+                String content = """
+<?xml version="1.0" encoding="UTF-8"?>
+                                         
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>tck</groupId>
+    <artifactId>project</artifactId>
+    <version>1-SNAPSHOT</version>
+  </parent>
+  <artifactId>%s</artifactId>
+  <packaging>jar</packaging>
+  <name>TCK - %s</name>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.8.1</version>
+        <configuration>
+          <release>11</release>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
+</project>                                           
+                                         """;
+                try ( FileWriter writer = new FileWriter(pomFile)) {
+                    writer.write(String.format(
+                            content,
+                            commonProjectDir.getName(),
+                            commonProjectDir.getName()));
+                    writer.flush();
+                }
+            }
+            // 3. copy Data.java into src/main/java.
+            File outputDirectory = new File(commonProjectDir, "src/main/java");
+            
+            if (!outputDirectory.exists()) {
+                outputDirectory.mkdirs();
+            }
+            
+            File inputFile = new File(tckDir, "src/com/sun/ts/tests/servlet/common/util/Data.java");
+            File outputFile = new File(outputDirectory, "com/sun/ts/tests/servlet/common/util/Data.java");
+            
+            copyFile(inputFile, outputFile);
+            
+            inputFile = new File(tckDir, "src/com/sun/ts/tests/servlet/common/util/StaticLog.java");
+            outputFile = new File(outputDirectory, "com/sun/ts/tests/servlet/common/util/StaticLog.java");
+            
+            copyFile(inputFile, outputFile);
+            
+        } catch (IOException ioe) {
+            ioe.printStackTrace(System.err);
+        }
+    }
+
+    /**
+     * Copy input file to output file.
+     * 
+     * @param inputFile the input file.
+     * @param outputFile the output file.
+     * @throws IOException when an I/O error occurs.
+     */
+    private void copyFile(File inputFile, File outputFile) throws IOException {
+        if (!outputFile.getParentFile().exists()) {
+            outputFile.getParentFile().mkdirs();
+        }
+        Files.copy(inputFile.toPath(), outputFile.toPath());
+    }
+
+    /**
      * Deploy the wars.
      */
     private void deployWars() {
@@ -547,6 +643,7 @@ public class Mammoth {
         addJavaSources();
         createJavaTestJarProject();
         createTSHarnessJarProject();
+        createCommonJarProject();
     }
 
     /**
