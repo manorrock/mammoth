@@ -654,6 +654,9 @@ public class Mammoth {
      */
     public Mammoth parseArguments(String[] arguments) {
         for (int i = 0; i < arguments.length; i++) {
+            if (arguments[i].equals("--mavenDir")) {
+                mavenDir = new File(arguments[i + 1]);
+            }
             if (arguments[i].equals("--tckUrl")) {
                 try {
                     tckUrl = new URL(arguments[i + 1]);
