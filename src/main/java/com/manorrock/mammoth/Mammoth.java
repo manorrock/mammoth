@@ -657,15 +657,18 @@ public class Mammoth {
             if (arguments[i].equals("--mavenDir")) {
                 mavenDir = new File(arguments[i + 1]);
             }
+            if (arguments[i].equals("--tckDir")) {
+                tckDir = new File(arguments[i + 1]);
+            }
+            if (arguments[i].equals("--tckZipFile")) {
+                tckZipFile = arguments[i + 1];
+            }
             if (arguments[i].equals("--tckUrl")) {
                 try {
                     tckUrl = new URL(arguments[i + 1]);
                 } catch (MalformedURLException ex) {
                     ex.printStackTrace(System.err);
                 }
-            }
-            if (arguments[i].equals("--tckDir")) {
-                tckDir = new File(arguments[i + 1]);
             }
             if (arguments[i].equals("--webAppsDir")) {
                 webAppsDir = new File(arguments[i + 1]);
