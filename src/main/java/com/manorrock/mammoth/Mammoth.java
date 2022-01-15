@@ -60,6 +60,11 @@ public class Mammoth {
     private File mavenDir = new File("maven");
 
     /**
+     * Stores the show help flag.
+     */
+    private boolean showHelp;
+
+    /**
      * Stores the TCK directory.
      */
     private File tckDir = new File("tck");
@@ -90,11 +95,11 @@ public class Mammoth {
                         file.getName().substring(0, file.getName().toLowerCase().indexOf(".war"))
                         + File.separator
                         + "src/main/java");
-                
+
                 if (!outputDirectory.exists()) {
                     outputDirectory.mkdirs();
                 }
-                
+
                 try ( ZipInputStream zipInput = new ZipInputStream(new FileInputStream(file))) {
                     ZipEntry entry = zipInput.getNextEntry();
                     while (entry != null) {
@@ -220,14 +225,14 @@ public class Mammoth {
             File topLevelPomFile = new File(mavenDir, "pom.xml");
             if (topLevelPomFile.createNewFile()) {
                 StringBuilder modules = new StringBuilder();
-                
+
                 directories = mavenDir.listFiles();
                 for (File directory : directories) {
                     if (directory.isDirectory()) {
                         modules.append("<module>").append(directory.getName()).append("</module>\n");
                     }
                 }
-                
+
                 String content = """
 <?xml version="1.0" encoding="UTF-8"?>
                                          
@@ -316,11 +321,11 @@ public class Mammoth {
             }
             // 3. extract lib/javatest.jar into src/main/resources.
             File outputDirectory = new File(javaTestProjectDir, "src/main/resources");
-            
+
             if (!outputDirectory.exists()) {
                 outputDirectory.mkdirs();
             }
-            
+
             try ( ZipInputStream zipInput = new ZipInputStream(
                     new FileInputStream(new File(tckDir, "lib/javatest.jar")))) {
                 ZipEntry entry = zipInput.getNextEntry();
@@ -336,7 +341,7 @@ public class Mammoth {
                     entry = zipInput.getNextEntry();
                 }
             }
-            
+
         } catch (IOException ioe) {
             ioe.printStackTrace(System.err);
         }
@@ -397,11 +402,11 @@ public class Mammoth {
             }
             // 3. extract lib/tsharness.jar into src/main/resources.
             File outputDirectory = new File(tsHarnessProjectDir, "src/main/resources");
-            
+
             if (!outputDirectory.exists()) {
                 outputDirectory.mkdirs();
             }
-            
+
             try ( ZipInputStream zipInput = new ZipInputStream(
                     new FileInputStream(new File(tckDir, "lib/tsharness.jar")))) {
                 ZipEntry entry = zipInput.getNextEntry();
@@ -417,7 +422,7 @@ public class Mammoth {
                     entry = zipInput.getNextEntry();
                 }
             }
-            
+
         } catch (IOException ioe) {
             ioe.printStackTrace(System.err);
         }
@@ -478,21 +483,21 @@ public class Mammoth {
             }
             // 3. copy Data.java into src/main/java.
             File outputDirectory = new File(commonProjectDir, "src/main/java");
-            
+
             if (!outputDirectory.exists()) {
                 outputDirectory.mkdirs();
             }
-            
+
             File inputFile = new File(tckDir, "src/com/sun/ts/tests/servlet/common/util/Data.java");
             File outputFile = new File(outputDirectory, "com/sun/ts/tests/servlet/common/util/Data.java");
-            
+
             copyFile(inputFile, outputFile);
-            
+
             inputFile = new File(tckDir, "src/com/sun/ts/tests/servlet/common/util/StaticLog.java");
             outputFile = new File(outputDirectory, "com/sun/ts/tests/servlet/common/util/StaticLog.java");
-            
+
             copyFile(inputFile, outputFile);
-            
+
         } catch (IOException ioe) {
             ioe.printStackTrace(System.err);
         }
@@ -500,7 +505,7 @@ public class Mammoth {
 
     /**
      * Copy input file to output file.
-     * 
+     *
      * @param inputFile the input file.
      * @param outputFile the output file.
      * @throws IOException when an I/O error occurs.
@@ -517,16 +522,16 @@ public class Mammoth {
      */
     private void deployWars() {
         try ( Stream<Path> walk = Files.walk(tckDir.toPath())) {
-            
+
             List<File> files = walk
                     .map(Path::toFile)
                     .filter(file -> file.getName().toLowerCase().endsWith(".war"))
                     .collect(Collectors.toList());
-            
+
             if (!webAppsDir.exists()) {
                 webAppsDir.mkdirs();
             }
-            
+
             files.forEach(file -> {
                 File deployedFile = new File(webAppsDir, file.getName());
                 if (!deployedFile.exists()) {
@@ -539,7 +544,7 @@ public class Mammoth {
                     System.err.println("Duplicate filename detected: " + file.getAbsolutePath());
                 }
             });
-            
+
         } catch (IOException ioe) {
             ioe.printStackTrace(System.err);
         }
@@ -605,11 +610,11 @@ public class Mammoth {
                         file.getName().substring(0, file.getName().toLowerCase().indexOf(".war"))
                         + File.separator
                         + "src/main/webapp");
-                
+
                 if (!outputDirectory.exists()) {
                     outputDirectory.mkdirs();
                 }
-                
+
                 try ( ZipInputStream zipInput = new ZipInputStream(new FileInputStream(file))) {
                     ZipEntry entry = zipInput.getNextEntry();
                     while (entry != null) {
@@ -635,15 +640,19 @@ public class Mammoth {
      * Run the program.
      */
     public void run() {
-        downloadTck();
-        extractTck();
-        deployWars();
-        createMavenStructure();
-        explodeBinaryContentFromWars();
-        addJavaSources();
-        createJavaTestJarProject();
-        createTSHarnessJarProject();
-        createCommonJarProject();
+        if (!showHelp) {
+            downloadTck();
+            extractTck();
+            deployWars();
+            createMavenStructure();
+            explodeBinaryContentFromWars();
+            addJavaSources();
+            createJavaTestJarProject();
+            createTSHarnessJarProject();
+            createCommonJarProject();
+        } else {
+            showHelp();
+        }
     }
 
     /**
@@ -656,6 +665,9 @@ public class Mammoth {
         for (int i = 0; i < arguments.length; i++) {
             if (arguments[i].equals("--mavenDir")) {
                 mavenDir = new File(arguments[i + 1]);
+            }
+            if (arguments[i].equals("--help")) {
+                showHelp = true;
             }
             if (arguments[i].equals("--tckDir")) {
                 tckDir = new File(arguments[i + 1]);
@@ -684,5 +696,21 @@ public class Mammoth {
      */
     public static void main(String[] arguments) {
         new Mammoth().parseArguments(arguments).run();
+    }
+
+    /**
+     * Show help.
+     */
+    private static void showHelp() {
+        System.out.println();
+        System.out.println(
+                """
+                  --help              - Show this help
+                  --mavenDir <dir>    - The directory where to save the Maven structure
+                  --tckDir <dir>      - The directory to unzip TCK to
+                  --tckUrl <url>      - The location of the TCK to be fetched
+                  --tckZipFile <file> - The file location where to save the TCK zip file
+                  --webAppsDir <dir>  - The directory where to store the web apps
+                """);
     }
 }
