@@ -650,6 +650,7 @@ public class Mammoth {
             createJavaTestJarProject();
             createTSHarnessJarProject();
             createCommonJarProject();
+            addTestJavaSources();
         } else {
             showHelp();
         }
@@ -712,5 +713,52 @@ public class Mammoth {
                   --tckZipFile <file> - The file location where to save the TCK zip file
                   --webAppsDir <dir>  - The directory where to store the web apps
                 """);
+    }
+
+    /**
+     * Copy all Java files from the WAR to the src/test/java irrespective
+     * whether or not they are actually used for testing. 
+     * 
+     * TODO - And then copy all the
+     * remaining Java files from the actual TCK src directory into it as well.
+     */
+    private void addTestJavaSources() {
+        File[] files = webAppsDir.listFiles();
+        for (File file : files) {
+            try {
+                File outputDirectory = new File(mavenDir,
+                        file.getName().substring(0, file.getName().toLowerCase().indexOf(".war"))
+                        + File.separator
+                        + "src/test/java");
+
+                if (!outputDirectory.exists()) {
+                    outputDirectory.mkdirs();
+                }
+
+                try ( ZipInputStream zipInput = new ZipInputStream(new FileInputStream(file))) {
+                    ZipEntry entry = zipInput.getNextEntry();
+                    while (entry != null) {
+                        String filePath = outputDirectory + File.separator + entry.getName();
+                        if (!entry.isDirectory() && filePath.toLowerCase().endsWith(".class")
+                                && !filePath.contains("$")) {
+                            String classFilePath = filePath.substring(0, filePath.lastIndexOf(".class"));
+                            classFilePath = classFilePath.substring(
+                                    classFilePath.lastIndexOf("WEB-INF/classes/")
+                                    + "WEB-INF/classes/".length());
+                            File classFile = new File(tckDir, "src/" + classFilePath + ".java");
+                            File outputFile = new File(outputDirectory, classFilePath + ".java");
+                            if (!outputFile.getParentFile().exists()) {
+                                outputFile.getParentFile().mkdirs();
+                            }
+                            Files.copy(classFile.toPath(), outputFile.toPath());
+                        }
+                        zipInput.closeEntry();
+                        entry = zipInput.getNextEntry();
+                    }
+                }
+            } catch (IOException ioe) {
+                ioe.printStackTrace(System.err);
+            }
+        }
     }
 }
