@@ -468,6 +468,20 @@ public class Mammoth {
       </plugin>
     </plugins>
   </build>
+  <dependencies>
+    <dependency>
+      <groupId>tck</groupId>
+      <artifactId>tsharness</artifactId>
+      <version>${project.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>commons-httpclient</groupId>
+      <artifactId>commons-httpclient</artifactId>
+      <version>3.1</version>
+      <scope>compile</scope>
+    </dependency>
+  </dependencies>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
@@ -490,14 +504,60 @@ public class Mammoth {
 
             File inputFile = new File(tckDir, "src/com/sun/ts/tests/servlet/common/util/Data.java");
             File outputFile = new File(outputDirectory, "com/sun/ts/tests/servlet/common/util/Data.java");
-
             copyFile(inputFile, outputFile);
 
             inputFile = new File(tckDir, "src/com/sun/ts/tests/servlet/common/util/StaticLog.java");
             outputFile = new File(outputDirectory, "com/sun/ts/tests/servlet/common/util/StaticLog.java");
-
+            copyFile(inputFile, outputFile);
+            
+            inputFile = new File(tckDir, "src/com/sun/ts/tests/common/webclient/BaseUrlClient.java");
+            outputFile = new File(outputDirectory, "com/sun/ts/tests/common/webclient/BaseUrlClient.java");
             copyFile(inputFile, outputFile);
 
+            inputFile = new File(tckDir, "src/com/sun/ts/lib/harness/EETest.java");
+            outputFile = new File(outputDirectory, "com/sun/ts/lib/harness/EETest.java");
+            copyFile(inputFile, outputFile);
+            
+            inputFile = new File(tckDir, "src/com/sun/ts/tests/common/webclient/http/HttpRequest.java");
+            outputFile = new File(outputDirectory, "com/sun/ts/tests/common/webclient/http/HttpRequest.java");
+            copyFile(inputFile, outputFile);
+            
+            inputFile = new File(tckDir, "src/com/sun/ts/tests/common/webclient/Util.java");
+            outputFile = new File(outputDirectory, "com/sun/ts/tests/common/webclient/Util.java");
+            copyFile(inputFile, outputFile);
+
+            inputFile = new File(tckDir, "src/com/sun/ts/tests/common/webclient/http/HttpResponse.java");
+            outputFile = new File(outputDirectory, "com/sun/ts/tests/common/webclient/http/HttpResponse.java");
+            copyFile(inputFile, outputFile);
+
+            inputFile = new File(tckDir, "src/com/sun/ts/tests/common/webclient/http/MethodFactory.java");
+            outputFile = new File(outputDirectory, "com/sun/ts/tests/common/webclient/http/MethodFactory.java");
+            copyFile(inputFile, outputFile);
+
+            inputFile = new File(tckDir, "src/com/sun/ts/tests/common/webclient/WebTestCase.java");
+            outputFile = new File(outputDirectory, "com/sun/ts/tests/common/webclient/WebTestCase.java");
+            copyFile(inputFile, outputFile);
+
+            inputFile = new File(tckDir, "src/com/sun/ts/tests/common/webclient/TestCase.java");
+            outputFile = new File(outputDirectory, "com/sun/ts/tests/common/webclient/TestCase.java");
+            copyFile(inputFile, outputFile);
+
+            inputFile = new File(tckDir, "src/com/sun/ts/tests/common/webclient/TestFailureException.java");
+            outputFile = new File(outputDirectory, "com/sun/ts/tests/common/webclient/TestFailureException.java");
+            copyFile(inputFile, outputFile);
+            
+            inputFile = new File(tckDir, "src/com/sun/ts/tests/common/webclient/validation/ValidationFactory.java");
+            outputFile = new File(outputDirectory, "com/sun/ts/tests/common/webclient/validation/ValidationFactory.java");
+            copyFile(inputFile, outputFile);
+            
+            inputFile = new File(tckDir, "src/com/sun/ts/tests/common/webclient/validation/ValidationStrategy.java");
+            outputFile = new File(outputDirectory, "com/sun/ts/tests/common/webclient/validation/ValidationStrategy.java");
+            copyFile(inputFile, outputFile);
+            
+            inputFile = new File(tckDir, "src/com/sun/ts/lib/harness/ServiceEETest.java");
+            outputFile = new File(outputDirectory, "com/sun/ts/lib/harness/ServiceEETest.java");
+            copyFile(inputFile, outputFile);
+        
         } catch (IOException ioe) {
             ioe.printStackTrace(System.err);
         }
