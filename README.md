@@ -1,3 +1,5 @@
+_This project has been archived and it will be removed Jan 1st, 2024_
+
 # Manorrock Mammoth
 
 A tool to convert a JavaTest based TCK to a set of Maven projects.
