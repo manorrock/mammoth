@@ -1,5 +1,7 @@
 # Manorrock Mammoth
 
+[![build](https://github.com/manorrock/mammoth/actions/workflows/build.yml/badge.svg)](https://github.com/manorrock/mammoth/actions/workflows/build.yml)
+
 A tool to convert a JavaTest based TCK to a set of Maven projects.
 
 ## How do I contribute?
