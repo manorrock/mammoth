@@ -1,3 +1,6 @@
+This project has been archived and is no longer maintained. It will be moved to our [Attic](https://githubcom/manorrock-attic) 
+if nobody is interested in taking it over by March 1st, 2026.
+
 # Manorrock Mammoth
 
 [![build](https://github.com/manorrock/mammoth/actions/workflows/build.yml/badge.svg)](https://github.com/manorrock/mammoth/actions/workflows/build.yml)
